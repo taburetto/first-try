@@ -1,2 +1,4 @@
+$ pip install sqlalchemy
+$ pip install flask
 $ pip install gunicorn
 $ pip freeze > requirements.txt
