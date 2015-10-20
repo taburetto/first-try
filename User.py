@@ -34,12 +34,11 @@ def add(**kwargs):
     session = Session()
     user = User(None, None, None, None, None, None)
     for key, value in kwargs.iteritems():
-        if key in dir(User):
+        if key in ['email', 'social_id']:
             setattr(user, key, value)
     session.add(user)
     session.commit()
     session.close()
-
 
 
 def check(email):
@@ -53,9 +52,3 @@ def check(email):
     else:
         session.close()
         return False
-
-test_email = 'taburetto@yandex.ru'
-check(test_email)
-if not check(test_email):
-    print('not there')
-    add(email=test_email)
