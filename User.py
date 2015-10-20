@@ -1,12 +1,13 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, mapper
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
-from sqlalchemy.schema import Sequence
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from sqlalchemy.engine.url import URL
+import settings
 
 
 Base = declarative_base()
-engine = create_engine('postgresql://postgres:Zhenqiguai0808@localhost:5432/Iter')
+engine = create_engine(URL(**settings.DATABASE))
 Session = sessionmaker(bind=engine)
 metadata = Base.metadata
 
