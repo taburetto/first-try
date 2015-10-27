@@ -73,6 +73,10 @@ def me():
 
 @app.route('/auth/login', methods=['POST'])
 def login():
+    if not request.json or not ('email' and 'password' in request.json):
+        response = jsonify(message='Have to send both email and password')
+        response.status_code = 400
+        return response
     user = find_by_email(request.json['email'])
     if not user or not user.check_password(request.json['password']):
         response = jsonify(message='Wrong Email or Password')
