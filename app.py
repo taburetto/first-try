@@ -5,7 +5,7 @@ import requests
 from User import User, find_by_email, find_by_id, AlreadyExists
 from datetime import datetime, timedelta
 from flask import g, send_file, request, redirect, url_for, jsonify, abort
-from jwt import DecodeError, ExpiredSignature
+from jwt import DecodeError, ExpiredSignature, decode, encode
 from flask import Flask
 from requests_oauthlib import OAuth1
 from functools import wraps
@@ -30,7 +30,7 @@ def create_token(user):
 
 
 def parse_token(req):
-    token = req.headers.get('Authorization').split()[1]
+    token = str(req.headers.get('Authorization'))
     return jwt.decode(token, app.config['TOKEN_SECRET'])
 
 
@@ -188,7 +188,6 @@ def facebook():
     u.add()
     token = create_token(u)
     return jsonify(token=token)
-
 
 if __name__ == '__main__':
     app.run()
