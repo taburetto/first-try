@@ -87,6 +87,7 @@ class GuideRoute(Base):
         self.user_id = user_id
 
     def json_to_download(self):
+        places = []
         for place in self.places:
             places.append(place.to_json())
         return dict(
