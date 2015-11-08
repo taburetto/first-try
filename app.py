@@ -2,7 +2,8 @@ import jwt
 import os
 import json
 import requests
-from User import User, find_by_email, find_by_id, AlreadyExists
+from GuideRoutes import GuideRoute, find_by_id as find_route_by_id
+from User import User, find_by_email, find_by_id as find_user_by_id, AlreadyExists
 from datetime import datetime, timedelta
 from flask import g, send_file, request, redirect, url_for, jsonify, abort
 from jwt import DecodeError, ExpiredSignature, decode, encode
@@ -67,7 +68,7 @@ def hello_world():
 @app.route('/api/me')
 @login_required
 def me():
-    user = find_by_id(id=g.user_id)
+    user = find_user_by_id(id=g.user_id)
     return jsonify(user.to_json())
 
 
@@ -106,88 +107,19 @@ def signup():
             return response
 
 
-@app.route('/auth/google', methods=['POST'])
-def google():
-    access_token_url = 'https://accounts.google.com/o/oauth2/token'
-    people_api_url = 'https://www.googleapis.com/plus/v1/people/me/openIdConnect'
-
-    payload = dict(client_id=request.json['clientId'],
-                   redirect_uri=request.json['redirectUri'],
-                   client_secret=app.config['GOOGLE_SECRET'],
-                   code=request.json['code'],
-                   grant_type='authorization_code')
-
-    # Step 1. Exchange authorization code for access token.
-    r = requests.post(access_token_url, data=payload)
-    token = json.loads(r.text)
-    headers = {'Authorization': 'Bearer {0}'.format(token['access_token'])}
-
-    # Step 2. Retrieve information about the current user.
-    r = requests.get(people_api_url, headers=headers)
-    profile = json.loads(r.text)
-
-    user = User.query.filter_by(google=profile['sub']).first()
-    if user:
-        token = create_token(user)
-        return jsonify(token=token)
-    u = User(google=profile['sub'],
-             display_name=profile['name'])
-    u.add()
-    token = create_token(u)
-    return jsonify(token=token)
-
-
-@app.route('/auth/facebook', methods=['POST'])
-def facebook():
-    access_token_url = 'https://graph.facebook.com/v2.3/oauth/access_token'
-    graph_api_url = 'https://graph.facebook.com/v2.3/me'
-
-    params = {
-        'client_id': request.json['clientId'],
-        'redirect_uri': request.json['redirectUri'],
-        'client_secret': app.config['FACEBOOK_SECRET'],
-        'code': request.json['code']
-    }
-
-    # Step 1. Exchange authorization code for access token.
-    r = requests.get(access_token_url, params=params)
-    access_token = dict(parse_qsl(r.text))
-
-    # Step 2. Retrieve information about the current user.
-    r = requests.get(graph_api_url, params=access_token)
-    profile = json.loads(r.text)
-
-    # Step 3. (optional) Link accounts.
-    if request.headers.get('Authorization'):
-        user = User.query.filter_by(facebook=profile['id']).first()
-        if user:
-            response = jsonify(message='There is already a Facebook account that belongs to you')
-            response.status_code = 409
-            return response
-
-        payload = parse_token(request)
-
-        user = User.query.filter_by(id=payload['sub']).first()
-        if not user:
-            response = jsonify(message='User not found')
-            response.status_code = 400
-            return response
-
-        u = User(facebook=profile['id'], display_name=profile['name'])
-        u.add()
-        token = create_token(u)
-        return jsonify(token=token)
-
-    # Step 4. Create a new account or return an existing one.
-    user = User.query.filter_by(facebook=profile['id']).first()
-    if user:
-        token = create_token(user)
-        return jsonify(token=token)
-
-    u = User(facebook=profile['id'], display_name=profile['name'])
-    u.add()
-    token = create_token(u)
-    return jsonify(token=token)
+@app.route('/route/download', methods=['POST'])
+@login_required
+def route_download():
+    if not request.json or not 'id' in request.json:
+        response = jsonify(message='Have to an id of the route')
+        response.status_code = 400
+        return response
+    else:
+        route = find_route_by_id(request.json['id'])
+        if route:
+            return jsonify(route.json_to_download())
+        else:
+            return jsonify(message="No such a route")
 
 if __name__ == '__main__':
     app.run()
