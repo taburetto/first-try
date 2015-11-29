@@ -7,21 +7,46 @@ from sqlalchemy.schema import ForeignKey
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import relationship
 
+
 # for local database on Windows
 #import settings
 #for Heroku
 import settings_heroku as settings
 
+
 Base = declarative_base()
 engine = create_engine(URL(**settings.DATABASE))
 Session = sessionmaker(bind=engine)
 metadata = Base.metadata
+metadata.create_all(engine)
 
-association_table = Table('places_in_routes', Base.metadata,
-                          Column('place_id', Integer, ForeignKey('places.id')),
-                          Column('route_id', Integer, ForeignKey('guide_routes.id')),
-                          Column('number', Integer),
-                          Column('id', Integer))
+#association_table = Table('places_in_routes', Base.metadata,
+ #                         Column('place_id', Integer, ForeignKey('places.id')),
+  #                        Column('route_id', Integer, ForeignKey('guide_routes.id')),
+    #                      Column('id', Integer))
+
+
+class PlaceInRoute(Base):
+    __tablename__ = 'places_in_routes'
+    id = Column(Integer, primary_key=True)
+    place_id = Column(Integer, ForeignKey('places.id'))
+    route_id = Column(Integer, ForeignKey('guide_routes.id'))
+
+
+
+class Picture(Base):
+    __tablename__ = 'pictures'
+    id = Column(Integer, primary_key=True)
+    url = Column(Text)
+    place_id = Column(Integer, ForeignKey('places.id'))
+    is_default = Column(Boolean)
+
+    def __init__(self, url=None, place_id=None):
+        self.url = url
+        self.place_id = place_id
+
+    def to_json(self):
+        return dict(id=self.id, url=self.url, default=self.is_default)
 
 
 class Place(Base):
@@ -53,21 +78,6 @@ class Place(Base):
         )
 
 
-class Picture(Base):
-    __tablename__ = 'pictures'
-    id = Column(Integer, primary_key=True)
-    url = Column(Text)
-    place_id = Column(Integer, ForeignKey('places.id'))
-    is_default = Column(Boolean)
-
-    def __init__(self, url=None, place_id=None):
-        self.url = url
-        self.place_id = place_id
-
-    def to_json(self):
-        return dict(id=self.id, url=self.url, default=self.is_default)
-
-
 class GuideRoute(Base):
     __tablename__ = 'guide_routes'
     id = Column(Integer, primary_key=True)
@@ -77,7 +87,7 @@ class GuideRoute(Base):
     price = Column(Integer)
     description = Column(Text)
     places = relationship("Place",
-                          secondary=association_table)
+                          secondary="places_in_routes")
 
     def __init__(self, name=None, rating=None, price=None, description=None, user_id=None):
         self.name = name
